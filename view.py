@@ -35,7 +35,11 @@ class MainFrame(wx.Frame):
         self.button_ShutterToggle = wx.Button(self.panel, label="Shutter ZU")
         self.button_ShutterToggle.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
 
-        self.staticText_ShutterState = wx.StaticText(self.panel, label="Shutter AUF", style=wx.ALIGN_CENTER | wx.ALIGN_CENTER_VERTICAL)
+        self.staticText_ShutterState = wx.StaticText(self.panel,
+                                                     label="Shutter AUF",
+                                                     style=wx.ALIGN_CENTER |
+                                                           wx.ALIGN_CENTER_VERTICAL |
+                                                           wx.ST_NO_AUTORESIZE)
         self.staticText_ShutterState.SetBackgroundColour('green')
         self.staticText_ShutterState.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
 
@@ -79,8 +83,13 @@ class MainFrame(wx.Frame):
         self.staticText_ShutterState.SetBackgroundColour('grey')
         self.staticText_ShutterState.SetLabel(" - - - ")
 
+    def enableView(self):
+        self.button_ShutterToggle.Enable()
+        self.button_ShutterToggle.SetLabel("Shutter Open")
+        self.staticText_ShutterState.SetBackgroundColour('green')
+        self.staticText_ShutterState.SetLabel(" - - - ")
+
     def onIdle(self, event):
-        #logging.debug("IDLE")
         tpub.poll()
 
 
@@ -96,6 +105,10 @@ class View(object):
 
     def disableView(self):
         self.mainframe.disableView()
+
+    def enableView(self):
+        self.mainframe.enableView()
+
 
 if __name__ == '__main__':
     View().start()

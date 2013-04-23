@@ -1,0 +1,18 @@
+http://192.168.3.3/cgi-bin/main.cgi?page=BASIC_CTL&lang=e
+http://192.168.3.3/cgi-bin/main.cgi?page=DETAIL_CTL&lang=e
+
+
+Statusseiten
+
+http://192.168.3.3/cgi-bin/main.cgi?page=PROJ_STATUS&lang=e
+Frameless:
+http://192.168.3.3/cgi-bin/projector_status.cgi?lang=e
+Status wird mit Farbe im Font-Tag realisiert -> ->Heavy scraping
+
+
+Direkte Steuerungslinks, mit OSD "ON" wird "text"-Seite zurückgegeben -> Scraping, nbsp entfernen
+
+http://192.168.3.3/cgi-bin/proj_ctl.cgi?key=pow_on&lang=e&osd=on
+http://192.168.3.3/cgi-bin/proj_ctl.cgi?key=pow_off&lang=e&osd=on
+http://192.168.3.3/cgi-bin/proj_ctl.cgi?key=shutter_on&lang=e&osd=on
+http://192.168.3.3/cgi-bin/proj_ctl.cgi?key=shutter_off&lang=e&osd=on

@@ -42,8 +42,8 @@ class ColoredStatusBar(wx.StatusBar):
         self.Bind(wx.EVT_IDLE, self.OnIdle)
 
         pub.subscribe(self.OnConnectionError, "model.connection.error")
-        pub.subscribe(self.OnConnectionEstablished, "model.connection.established")
-        pub.subscribe(self.OnGeneralStatusMessage, "model.state.message")
+        pub.subscribe(self.OnConnectionEstablished, "model.connection.ok")
+        pub.subscribe(self.OnGeneralStatusMessage, "controller.state.message")
 
         # set the initial position of the fields
         self.Reposition()

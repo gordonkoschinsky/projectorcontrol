@@ -1,5 +1,6 @@
 import logging
-logger = logging.getLogger('controller')
+logger = logging.getLogger('main')
 
 import controller
 
+_controller = controller.Controller()

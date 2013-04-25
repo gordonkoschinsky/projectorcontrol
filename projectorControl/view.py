@@ -46,11 +46,47 @@ video_projector = PyEmbeddedImage(
     "XgM8wAe2ne2e4OLdEWqRpCgaeIIx5in+D/E/ZJjN04oonQMAAAAASUVORK5CYII=")
 
 
+class LogFrame(wx.MiniFrame):
+    def __init__(self, parent):
+        wx.MiniFrame.__init__(self,
+                              parent,
+                              title="ProjectorControl Log",
+                              style=wx.DEFAULT_FRAME_STYLE | wx.TINY_CAPTION_HORIZ)
+
+        panel = wx.Panel(self)
+
+        self.logArea = wx.TextCtrl(panel,
+                              style=
+                              wx.TE_MULTILINE |
+                              wx.TE_READONLY |
+                              wx.TE_RICH2)
+
+        topSizer = wx.BoxSizer(wx.VERTICAL)
+
+        logSizer = wx.BoxSizer(wx.HORIZONTAL)
+        logSizer.Add(self.logArea, proportion=1, flag=wx.EXPAND | wx.ALL)
+
+        topSizer.Add(logSizer, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+
+        panel.SetSizer(topSizer)
+
+    def GetLogWidget(self):
+        return self.logArea
+
+
 class MainFrame(wx.Frame):
     def __init__(self, parent, title='Kammerspiele ProjectorControl'):
-        wx.Frame.__init__(self, parent, title=title, size=(800, 500))
+        wx.Frame.__init__(self, parent, title=title)
+
+        self.SetMinSize((400, 100))
 
         self.SetIcon(video_projector.getIcon())
+
+        #
+        # LOG FRAME
+        #
+        self.logFrame = LogFrame(self)
+
 
         #
         # WIDGETS
@@ -58,15 +94,8 @@ class MainFrame(wx.Frame):
         self.panel = wx.Panel(self)
 
         # Log
-
-        self.logArea = wx.TextCtrl(self.panel,
-                              style=
-                              wx.TE_MULTILINE |
-                              wx.TE_READONLY |
-                              wx.TE_RICH2)
-
-        checkbox_showLog = wx.CheckBox(self.panel, label="Zeige Log")
-        checkbox_showLog.SetValue(True)
+        self.checkbox_showLog = wx.CheckBox(self.panel, label="Zeige Log")
+        self.checkbox_showLog.SetValue(False)
 
         # Status bar
         self.sb = gui_statusbar.ColoredStatusBar(parent=self, fieldCount=2)
@@ -99,27 +128,27 @@ class MainFrame(wx.Frame):
         powerSizer = wx.BoxSizer(wx.HORIZONTAL)
         powerSizer.Add(self.button_PowerToggle, proportion=1, flag=wx.EXPAND)
 
-        logSizer = wx.BoxSizer(wx.HORIZONTAL)
-        logSizer.Add(self.logArea, proportion=1, flag=wx.EXPAND | wx.ALL)
-
         topSizer.Add(shutterSizer, proportion=0, flag=wx.ALL | wx.EXPAND, border=5)
         topSizer.Add(powerSizer, proportion=0, flag=wx.ALL | wx.EXPAND, border=5)
-        topSizer.Add(logSizer, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
-        topSizer.Add(checkbox_showLog, flag=wx.ALL | wx.EXPAND, border=5)
+        topSizer.Add(self.checkbox_showLog, flag=wx.ALL | wx.EXPAND, border=5)
 
         self.panel.SetSizer(topSizer)
 
         # SETUP
-        self.initLogging(self.logArea)
+        self.initLogging(self.logFrame.GetLogWidget())
 
         # EVENTS
-        checkbox_showLog.Bind(wx.EVT_CHECKBOX, self.onShowLogChecked)
+        self.checkbox_showLog.Bind(wx.EVT_CHECKBOX, self.onShowLogChecked)
         self.button_ShutterToggle.Bind(wx.EVT_BUTTON, self.onShutterToggle)
         self.button_PowerToggle.Bind(wx.EVT_BUTTON, self.onPowerToggle)
+        self.logFrame.Bind(wx.EVT_CLOSE, self.onLogClosed)
         self.Bind(wx.EVT_IDLE, self.onIdle)
 
+        self.panel.Fit()
         self.panel.Layout()
+
         self.disableView()
+        self.Fit()
         self.Show()
 
     def initLogging(self, logCtrl):
@@ -174,12 +203,7 @@ class MainFrame(wx.Frame):
         tpub.poll()
 
     def onShowLogChecked(self, event):
-        self.logArea.Shown = event.IsChecked()
-        self.logArea.GetParent().Fit()
-        self.logArea.GetParent().Layout()
-        self.logArea.GetTopLevelParent().Fit()
-        self.logArea.GetTopLevelParent().Layout()
-        # TODO: Adjust frame height to log Area
+        self.logFrame.Shown = event.IsChecked()
 
     def onShutterToggle(self, event):
         pub.sendMessage('view.button.shutter')
@@ -187,6 +211,10 @@ class MainFrame(wx.Frame):
     def onPowerToggle(self, event):
         pub.sendMessage('view.button.power')
 
+    def onLogClosed(self, event):
+        self.checkbox_showLog.SetValue(False)
+        self.logFrame.Hide()
+        event.skip()
 
 class View(object):
     def __init__(self):

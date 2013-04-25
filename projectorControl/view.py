@@ -1,20 +1,56 @@
 # -*- coding: UTF-8 -*-
+import logging
+from wxLogHandler import WxLogHandler
+logger = logging.getLogger('view')
+
 import wx
 import wx.lib.buttons as buttons
 import gui_statusbar
 
-import logging
-from wxLogHandler import WxLogHandler
-
 from pubsub import pub
 from threadsafepub import pub as tpub
 
-logger = logging.getLogger('view')
+
+from wx.lib.embeddedimage import PyEmbeddedImage
+
+video_projector = PyEmbeddedImage(
+    "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")
 
 
 class MainFrame(wx.Frame):
     def __init__(self, parent, title='Kammerspiele ProjectorControl'):
         wx.Frame.__init__(self, parent, title=title, size=(800, 500))
+
+        self.SetIcon(video_projector.getIcon())
 
         #
         # WIDGETS

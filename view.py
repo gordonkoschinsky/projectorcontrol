@@ -119,7 +119,8 @@ class MainFrame(wx.Frame):
         self.Refresh()
 
     def blinkBackground(self):
-        self.blinkingTimer.Start(500)
+        if not self.blinkingTimer.IsRunning():
+            self.blinkingTimer.Start(500)
 
     def unblinkBackground(self):
         self.blinkingTimer.Stop()

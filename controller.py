@@ -7,6 +7,7 @@ import model
 from threadsafepub import pub as tpub
 from pubsub import pub
 
+
 class Controller(object):
     def __init__(self):
         self._bindEvents()
@@ -16,7 +17,7 @@ class Controller(object):
         self.view.start()
 
     def _bindEvents(self):
-        pub.subscribe(self._initModel, 'view.ready')
+        pub.subscribe(self._initApp, 'view.ready')
 
         pub.subscribe(self._onModelConfigfileError, 'model.config.file.error')
         pub.subscribe(self._onModelConfigfileOK, 'model.config.file.ok')
@@ -37,7 +38,7 @@ class Controller(object):
         pub.subscribe(self._onCooling, 'model.cooling.inprogress')
         pub.subscribe(self._onCoolingFinished, 'model.cooling.finished')
 
-    def _initModel(self):
+    def _initApp(self):
         self.model = model.Projector()
 
     def _onModelConfigfileError(self):

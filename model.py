@@ -74,12 +74,12 @@ class Projector(object):
         self.configParser = ConfigParser.SafeConfigParser()
 
     def readConfig(self):
-        logger.debug("Opening config file {}".format(CONFIG_FILE))
+        logger.info("Opening config file {}".format(CONFIG_FILE))
 
         # Load the configuration file
         if len(self.configParser.read(CONFIG_FILE)) == 0:
             tpub.sendMessage('model.config.file.error')
-            logger.error("Could NOT open config file {}".format(CONFIG_FILE))
+            logger.critical("Could NOT open config file {}".format(CONFIG_FILE))
             return
 
         try:
@@ -88,13 +88,13 @@ class Projector(object):
                 logger.debug('config:  %-15s = %r' % (name, self.options[name]))
         except ConfigParser.Error as e:
             tpub.sendMessage('model.config.file.error')
-            logger.error("Error while parsing config file {}: {}".format(CONFIG_FILE, e))
+            logger.critical("Error while parsing config file {}: {}".format(CONFIG_FILE, e))
             self.configured = False
             return
 
         self.configured = True
         tpub.sendMessage('model.config.file.ok')
-        logger.debug("config file {} parsed sucessfully".format(CONFIG_FILE))
+        logger.info("config file {} parsed sucessfully".format(CONFIG_FILE))
 
     def makeRequest(self, url, params):
         try:
@@ -116,7 +116,7 @@ class Projector(object):
             if not self.configured:
                 sleep(1)
                 continue
-            logger.debug("Pinging host")
+            logger.info("Pinging projector host")
             self.requestStatus()
             sleep(PING_INTERVAL)
 
@@ -127,7 +127,8 @@ class Projector(object):
         if not response:
             return False
         if self.parseStatus(response.text):
-            self.announce_connection()
+            if not self.cooling:
+                self.announce_connection()
         else:
             self.announce_noConnection()
 
@@ -137,7 +138,7 @@ class Projector(object):
 
         match = self.regexp_projector.search(text)
         if not match:
-            logger.debug("Could not match the projector type to the status response.")
+            logger.warning("Could not match the projector type to the status response.")
             return False
 
         # Execute the precompiled power state condition, limiting the namespace
@@ -145,9 +146,9 @@ class Projector(object):
             nsg, nsl = {"__builtins__": None, "False": False, "True": True}, {"soup": soup}
             exec(self.soup_power_state, nsg, nsl)
             self.powered = nsl['power']
-            logger.debug("Power is {}".format("ON" if nsl['power'] else "OFF"))
+            logger.info("Power is {}".format("ON" if nsl['power'] else "OFF"))
         except Exception as e:
-            logger.debug("Error in Power response: {}".format(e))
+            logger.warning("Error in Power response: {}".format(e))
             self.announce_erroneousResponse()
         if not self.cooling:
             if self.powered:
@@ -161,14 +162,14 @@ class Projector(object):
                 nsg, nsl = {"__builtins__": None, "False": False, "True": True}, {"soup": soup}
                 exec(self.soup_shutter_state, nsg, nsl)
                 self.shutter = nsl['shutter']
-                logger.debug("Shutter is {}".format("CLOSED" if nsl['shutter'] else "OPEN"))
+                logger.info("Shutter is {}".format("CLOSED" if nsl['shutter'] else "OPEN"))
                 if not self.cooling:
                     if self.shutter:
                         self.announce_shutterClosed()
                     else:
                         self.announce_shutterOpen()
             except Exception as e:
-                logger.debug("Error in Shutter response: {}".format(e))
+                logger.warning("Error in Shutter response: {}".format(e))
                 self.announce_erroneousResponse()
         return True
 
@@ -206,7 +207,7 @@ class Projector(object):
         match = self.regexp_cooling.search(text)
 
         if match:
-            logger.debug("STILL COOLING")
+            logger.info("Still cooling...")
             self.announce_cooling()
             self.cooling = True
         else:
@@ -215,7 +216,6 @@ class Projector(object):
             self.cooling = False
 
     def coolingWatchdog(self):
-        logger.debug("*************WATCHDIG************************")
         watchCooling = True
         while watchCooling:
             response = self.requestCommand(self.projector_command_power_off)

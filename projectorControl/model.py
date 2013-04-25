@@ -12,7 +12,6 @@ import threading
 import re
 
 CONFIG_FILE = "projector.ini"
-PING_INTERVAL = 5
 
 
 class Projector(object):
@@ -56,6 +55,7 @@ class Projector(object):
             'projector_host': None,
             'projector_user': None,
             'projector_password': None,
+            'ping_interval': 5
         }
 
         self.configured = False
@@ -110,6 +110,7 @@ class Projector(object):
         except requests.RequestException as e:
             logger.error("Request Error: {}".format(e))
             self.announce_noConnection()
+            return None
 
     def statusPinger(self):
         while not self.shutdown:
@@ -118,14 +119,26 @@ class Projector(object):
                 continue
             logger.info("Pinging projector host")
             self.requestStatus()
-            sleep(PING_INTERVAL)
+            sleep(float(self.options['ping_interval']))
 
     def requestStatus(self):
         response = self.makeRequest(self.options['projector_host'] +
                          self.projector_status_url_path,
                          self.projector_status_query_string)
-        if not response:
+
+        if response is None:
             return False
+
+        logger.debug("ping response status code {}".format(response.status_code))
+
+        if response.status_code != 200:
+            if response.status_code == 401:
+                logger.error("Authentification error, check username and password")
+            else:
+                logger.error("General ping response error, code {}".format(response.status_code))
+            self.announce_noConnection()
+            return False
+
         if self.parseStatus(response.text):
             if not self.cooling:
                 self.announce_connection()
@@ -174,33 +187,47 @@ class Projector(object):
         return True
 
     def requestCommand(self, command_query_string):
-        return self.makeRequest(self.options['projector_host'] +
+        response = self.makeRequest(self.options['projector_host'] +
                          self.projector_command_url_path,
                          command_query_string)
 
+        if response is None:
+            return False
+
+        logger.debug("command response status code {}".format(response.status_code))
+
+        if response.status_code != 200:
+            logger.error("General command response error, code {}".format(response.status_code))
+            return False
+
+        self.parseCommandResponse(response)
+
     def toggleShutter(self):
         if self.shutter:
-            response = self.requestCommand(self.projector_command_shutter_open)
+            self.requestCommand(self.projector_command_shutter_open)
+            if self.shutter:
+                self.announce_shutterOpen()
         else:
-            response = self.requestCommand(self.projector_command_shutter_close)
+            self.requestCommand(self.projector_command_shutter_close)
+            if not self.shutter:
+                self.announce_shutterClosed()
 
     def togglePower(self):
         if not self.cooling:
             if self.powered:
-                response = self.requestCommand(self.projector_command_power_off)
+                self.requestCommand(self.projector_command_power_off)
             else:
-                response = self.requestCommand(self.projector_command_power_on)
-
-            self.parseCommandResponse(response)
+                self.requestCommand(self.projector_command_power_on)
 
             if self.cooling:
-                # power button is disable while cooling,
+                # power button is disabled while cooling,
                 # make sure we don't miss the end of cooling
                 coolingWatchdog = threading.Thread(target=self.coolingWatchdog)
                 coolingWatchdog.daemon = True
                 coolingWatchdog.start()
 
     def parseCommandResponse(self, response):
+        # TODO Parse shutter response for FAST UI update
         soup = BeautifulSoup(response.text)
         text = soup.get_text()
 
@@ -218,8 +245,7 @@ class Projector(object):
     def coolingWatchdog(self):
         watchCooling = True
         while watchCooling:
-            response = self.requestCommand(self.projector_command_power_off)
-            self.parseCommandResponse(response)
+            self.requestCommand(self.projector_command_power_off)
             watchCooling = self.cooling
             sleep(2)
 

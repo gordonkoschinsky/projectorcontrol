@@ -1,6 +1,12 @@
 # default: 404
 path().status(404).html("404 Not found")
 
+# NO AUTH
+path().status(401).html("401 Not authorized")
+
+# GENERAL ERROR
+path().status(500).html("Internal server error")
+
 # STATUS URL
 #
 # OFF
@@ -10,7 +16,7 @@ path().status(404).html("404 Not found")
 #path('/cgi-bin/projector_status.cgi').status(200).body_file('canned_data/power_on_shutter_off_status_report.htm')
 
 # ON, Shutter CLOSED
-path('/cgi-bin/projector_status.cgi').status(200).body_file('canned_data/power_on_shutter_on_status_report.htm')
+#path('/cgi-bin/projector_status.cgi').status(200).body_file('canned_data/power_on_shutter_on_status_report.htm')
 
 # ON, shutter MANGLED
 #path('/cgi-bin/projector_status.cgi').status(200).body_file('canned_data/power_on_shutter_mangled_status_report.htm')

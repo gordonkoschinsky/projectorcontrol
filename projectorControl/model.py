@@ -205,11 +205,11 @@ class Projector(object):
     def toggleShutter(self):
         if self.shutter:
             self.requestCommand(self.projector_command_shutter_open)
-            if self.shutter:
+            if not self.shutter:
                 self.announce_shutterOpen()
         else:
             self.requestCommand(self.projector_command_shutter_close)
-            if not self.shutter:
+            if self.shutter:
                 self.announce_shutterClosed()
 
     def togglePower(self):

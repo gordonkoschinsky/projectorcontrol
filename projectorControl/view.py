@@ -5,13 +5,14 @@ logger = logging.getLogger('view')
 
 import wx
 import wx.lib.buttons as buttons
+from wx.lib.embeddedimage import PyEmbeddedImage
 import gui_statusbar
 
 from pubsub import pub
 from threadsafepub import pub as tpub
 
+import win32con
 
-from wx.lib.embeddedimage import PyEmbeddedImage
 
 video_projector = PyEmbeddedImage(
     "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAABgRJ"
@@ -73,7 +74,6 @@ class LogFrame(wx.MiniFrame):
     def GetLogWidget(self):
         return self.logArea
 
-
 class MainFrame(wx.Frame):
     def __init__(self, parent, title='Kammerspiele ProjectorControl'):
         wx.Frame.__init__(self, parent, title=title)
@@ -82,11 +82,26 @@ class MainFrame(wx.Frame):
 
         self.SetIcon(video_projector.getIcon())
 
+        # HOT KEYS
+
+        # TODO: Make hotkeys configurable via .ini
+        # TODO: Make separate shutter open and close hotkeys and thus refactor the
+        # model api to support this
+        # TODO: Make small programms that only fire a specific kex command, this
+        # can be used by visio to control the shutter
+        # TODO: Look into MIDI for python
+        self.hotKeyId_Shutter = 100
+        self.RegisterHotKey(
+                    self.hotKeyId_Shutter,  #a unique ID for this hotkey
+                    win32con.MOD_ALT,       #the modifier key
+                    win32con.VK_F12)        #the key to watch for
+
+        self.Bind(wx.EVT_HOTKEY, self.onShutterToggle, id=self.hotKeyId_Shutter)
+
         #
         # LOG FRAME
         #
         self.logFrame = LogFrame(self)
-
 
         #
         # WIDGETS
@@ -206,7 +221,9 @@ class MainFrame(wx.Frame):
         self.logFrame.Shown = event.IsChecked()
 
     def onShutterToggle(self, event):
-        pub.sendMessage('view.button.shutter')
+        if self.button_ShutterToggle.Enabled:
+            # check if enabled because the hotkey could still trigger even if disabled
+            pub.sendMessage('view.button.shutter')
 
     def onPowerToggle(self, event):
         pub.sendMessage('view.button.power')
@@ -215,6 +232,7 @@ class MainFrame(wx.Frame):
         self.checkbox_showLog.SetValue(False)
         self.logFrame.Hide()
         event.skip()
+
 
 class View(object):
     def __init__(self):

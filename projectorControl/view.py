@@ -11,6 +11,8 @@ import gui_statusbar
 from pubsub import pub
 from threadsafepub import pub as tpub
 
+from collections import OrderedDict
+
 import win32con
 
 
@@ -62,14 +64,50 @@ class LogFrame(wx.MiniFrame):
                               wx.TE_READONLY |
                               wx.TE_RICH2)
 
+        logLevels = OrderedDict()
+        logLevels[logging.DEBUG] = logging.getLevelName(logging.DEBUG)
+        logLevels[logging.INFO] = logging.getLevelName(logging.INFO)
+        logLevels[logging.WARNING] = logging.getLevelName(logging.WARNING)
+        logLevels[logging.ERROR] = logging.getLevelName(logging.ERROR)
+        logLevels[logging.CRITICAL] = logging.getLevelName(logging.CRITICAL)
+
+        self.CmbBoxLogLevel = wx.ComboBox(parent=panel, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+
+        for level, levelName in logLevels.items():
+            self.CmbBoxLogLevel.Append(levelName, level)
+
+        try:
+            self.CmbBoxLogLevel.SetValue(logLevels[logging.getLogger().getEffectiveLevel()])
+        except:
+            # Unknown level, custom?
+            pass
+
+        stTxtLevelLabel = wx.StaticText(parent=panel, label="Log-Level:")
+
+        # SIZER
+
         topSizer = wx.BoxSizer(wx.VERTICAL)
 
         logSizer = wx.BoxSizer(wx.HORIZONTAL)
         logSizer.Add(self.logArea, proportion=1, flag=wx.EXPAND | wx.ALL)
 
-        topSizer.Add(logSizer, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        levelSelectorSizer = wx.BoxSizer(wx.HORIZONTAL)
+        levelSelectorSizer.Add(stTxtLevelLabel, flag=wx.CENTER | wx.LEFT, border=5)
+        levelSelectorSizer.Add(self.CmbBoxLogLevel, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+
+        topSizer.Add(logSizer, proportion=2, flag=wx.EXPAND, border=5)
+        topSizer.Add(levelSelectorSizer, flag=wx.EXPAND, border=5)
 
         panel.SetSizer(topSizer)
+
+        # EVENTS
+
+        self.Bind(wx.EVT_COMBOBOX, self.OnSelectLogLevel)
+
+    def OnSelectLogLevel(self, event):
+        rootLogger = logging.getLogger()
+        selectedLogLevel = self.CmbBoxLogLevel.GetClientData(event.GetSelection())
+        rootLogger.setLevel(selectedLogLevel)
 
     def GetLogWidget(self):
         return self.logArea
@@ -78,7 +116,7 @@ class MainFrame(wx.Frame):
     def __init__(self, parent, title='Kammerspiele ProjectorControl'):
         wx.Frame.__init__(self, parent, title=title)
 
-        self.SetMinSize((400, 100))
+        self.SetMinSize((200, 150))
 
         self.SetIcon(video_projector.getIcon())
 
@@ -143,8 +181,8 @@ class MainFrame(wx.Frame):
         powerSizer = wx.BoxSizer(wx.HORIZONTAL)
         powerSizer.Add(self.button_PowerToggle, proportion=1, flag=wx.EXPAND)
 
-        topSizer.Add(shutterSizer, proportion=0, flag=wx.ALL | wx.EXPAND, border=5)
-        topSizer.Add(powerSizer, proportion=0, flag=wx.ALL | wx.EXPAND, border=5)
+        topSizer.Add(shutterSizer, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        topSizer.Add(powerSizer, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
         topSizer.Add(self.checkbox_showLog, flag=wx.ALL | wx.EXPAND, border=5)
 
         self.panel.SetSizer(topSizer)
@@ -161,14 +199,14 @@ class MainFrame(wx.Frame):
 
         self.panel.Fit()
         self.panel.Layout()
+        self.SetSize((400, 200))
 
         self.disableView()
         self.Fit()
         self.Show()
 
     def initLogging(self, logCtrl):
-        rootLogger = logging.getLogger('')
-        rootLogger.setLevel(logging.DEBUG)
+        rootLogger = logging.getLogger()
         handler = WxLogHandler(logCtrl)
         handler.setFormatter(logging.Formatter('%(levelname)s | %(name)s | %(message)s [@ %(asctime)s in %(filename)s:%(lineno)d]'))
         rootLogger.addHandler(handler)

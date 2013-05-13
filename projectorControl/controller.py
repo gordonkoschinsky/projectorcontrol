@@ -34,6 +34,7 @@ class Controller(object):
 
         pub.subscribe(self._onShutterToggled, 'view.button.shutter')
         pub.subscribe(self._onPowerToggled, 'view.button.power')
+        pub.subscribe(self._onPowerOffConfirmed, 'view.confirmed.poweroff')
 
         pub.subscribe(self._onCooling, 'model.cooling.inprogress')
         pub.subscribe(self._onCoolingFinished, 'model.cooling.finished')
@@ -74,7 +75,14 @@ class Controller(object):
         self.view.updateState(shutter=True)
 
     def _onPowerToggled(self):
-        self.model.togglePower()
+        if self.model.powered:
+            self.view.confirmPowerOff()
+        else:
+            self.model.powerOn()
+
+    def _onPowerOffConfirmed(self):
+        self.model.powerOff()
+
 
     def _onShutterToggled(self):
         self.model.toggleShutter()

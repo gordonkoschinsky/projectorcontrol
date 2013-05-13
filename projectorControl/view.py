@@ -112,6 +112,7 @@ class LogFrame(wx.MiniFrame):
     def GetLogWidget(self):
         return self.logArea
 
+
 class MainFrame(wx.Frame):
     def __init__(self, parent, title='Kammerspiele ProjectorControl'):
         wx.Frame.__init__(self, parent, title=title)
@@ -307,6 +308,16 @@ class View(object):
             self.mainframe.blinkBackground()
         else:
             self.mainframe.unblinkBackground()
+
+    def confirmPowerOff(self):
+        confirmDialog = wx.MessageDialog(parent=self.mainframe,
+                                         message="Projektor wirklich abschalten?",
+                                         caption="Projektor abschalten",
+                                         style=wx.YES_NO|wx.ICON_WARNING)
+        answer = confirmDialog.ShowModal()
+        if answer == wx.ID_YES:
+            pub.sendMessage("view.confirmed.poweroff")
+
 
 if __name__ == '__main__':
     View().start()

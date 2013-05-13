@@ -212,19 +212,21 @@ class Projector(object):
             if self.shutter:
                 self.announce_shutterClosed()
 
-    def togglePower(self):
+    def powerOff(self):
         if not self.cooling:
             if self.powered:
                 self.requestCommand(self.projector_command_power_off)
-            else:
-                self.requestCommand(self.projector_command_power_on)
-
             if self.cooling:
                 # power button is disabled while cooling,
                 # make sure we don't miss the end of cooling
                 coolingWatchdog = threading.Thread(target=self.coolingWatchdog)
                 coolingWatchdog.daemon = True
                 coolingWatchdog.start()
+
+    def powerOn(self):
+        if not self.cooling:
+            self.requestCommand(self.projector_command_power_on)
+
 
     def parseCommandResponse(self, response):
         # TODO Parse shutter response for FAST UI update

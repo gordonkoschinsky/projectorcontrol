@@ -1,17 +1,14 @@
 import logging
-logger = logging.getLogger("model")
+logger = logging.getLogger("projector_model")
 
 from threadsafepub import pub as tpub
 
-import ConfigParser
 import requests
 from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
 from time import sleep
 import threading
 import re
-
-CONFIG_FILE = "projector.ini"
 
 
 class Projector(object):
@@ -50,51 +47,29 @@ class Projector(object):
     # like a video projector to change it's output often.
 
     def __init__(self):
-        # Define the names of the config options
-        self.options = {
-            'projector_host': None,
-            'projector_user': None,
-            'projector_password': None,
-            'ping_interval': 5
-        }
-
         self.configured = False
         self.powered = False
         self.cooling = False
         self.shutter = False
 
-        self.initConfig()
-        self.readConfig()
         self.shutdown = False
         self.pinger = threading.Thread(target=self.statusPinger)
         self.pinger.daemon = True
         self.pinger.start()
 
-    def initConfig(self):
-        self.configParser = ConfigParser.SafeConfigParser()
-
-    def readConfig(self):
-        logger.info("Opening config file {}".format(CONFIG_FILE))
-
-        # Load the configuration file
-        if len(self.configParser.read(CONFIG_FILE)) == 0:
-            tpub.sendMessage('model.config.file.error')
-            logger.critical("Could NOT open config file {}".format(CONFIG_FILE))
-            return
-
-        try:
-            for name in self.options:
-                self.options[name] = self.configParser.get('projector', name)
-                logger.debug('config:  %-15s = %r' % (name, self.options[name]))
-        except ConfigParser.Error as e:
-            tpub.sendMessage('model.config.file.error')
-            logger.critical("Error while parsing config file {}: {}".format(CONFIG_FILE, e))
-            self.configured = False
-            return
-
+    def configure(self, config):
+        usedOptions = [
+                'projector_host',
+                'projector_user',
+                'projector_password',
+                'ping_interval'
+            ]
+        for option in usedOptions:
+            if option not in config:
+                self.configured = False
+                return
+        self.options = config
         self.configured = True
-        tpub.sendMessage('model.config.file.ok')
-        logger.info("config file {} parsed sucessfully".format(CONFIG_FILE))
 
     def makeRequest(self, url, params):
         try:
@@ -115,6 +90,7 @@ class Projector(object):
     def statusPinger(self):
         while not self.shutdown:
             if not self.configured:
+                logger.debug("Projector not yet configured - waiting for configuration")
                 sleep(1)
                 continue
             logger.info("Pinging projector host")
@@ -252,42 +228,43 @@ class Projector(object):
             sleep(2)
 
     def announce_noConnection(self):
-        tpub.sendMessage('model.connection.error')
+        tpub.sendMessage('projector.model.connection.error')
         logger.debug("Announcing: no connection established")
 
     def announce_connection(self):
-        tpub.sendMessage('model.connection.ok')
+        tpub.sendMessage('projector.model.connection.ok')
         logger.debug("Announcing: connection established")
 
     def announce_erroneousResponse(self):
-        tpub.sendMessage('model.response.error')
+        tpub.sendMessage('projector.model.response.error')
         logger.debug("Announcing: Error in projector response")
 
     def announce_powered(self):
-        tpub.sendMessage('model.power.on')
+        tpub.sendMessage('projector.model.power.on')
         logger.debug("Announcing: Power ON")
 
     def announce_unpowered(self):
-        tpub.sendMessage('model.power.off')
+        tpub.sendMessage('projector.model.power.off')
         logger.debug("Announcing: Power OFF")
 
     def announce_shutterClosed(self):
-        tpub.sendMessage('model.shutter.closed')
+        tpub.sendMessage('projector.model.shutter.closed')
         logger.debug("Announcing: Shutter closed")
 
     def announce_shutterOpen(self):
-        tpub.sendMessage('model.shutter.open')
+        tpub.sendMessage('projector.model.shutter.open')
         logger.debug("Announcing: Shutter open")
 
     def announce_cooling(self):
-        tpub.sendMessage('model.cooling.inprogress')
+        tpub.sendMessage('projector.model.cooling.inprogress')
         logger.debug("Announcing: Cooling")
 
     def announce_coolingFinished(self):
-        tpub.sendMessage('model.cooling.finished')
+        tpub.sendMessage('projector.model.cooling.finished')
         logger.debug("Announcing: Cooling finished")
 
 if __name__ == '__main__':
+    # FOR DEBUGGING ONLY
     logging.basicConfig()
     model = Projector()
     sleep(5)

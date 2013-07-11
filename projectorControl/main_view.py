@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import logging
 from wxLogHandler import WxLogHandler
-logger = logging.getLogger('view')
+logger = logging.getLogger('main_view')
 
 import wx
 import wx.lib.buttons as buttons
@@ -50,6 +50,8 @@ video_projector = PyEmbeddedImage(
 
 
 class LogFrame(wx.MiniFrame):
+    """A frame that displays a log area and some controls to adjust the log output
+    """
     def __init__(self, parent):
         wx.MiniFrame.__init__(self,
                               parent,
@@ -262,26 +264,31 @@ class MainFrame(wx.Frame):
     def onShutterToggle(self, event):
         if self.button_ShutterToggle.Enabled:
             # check if enabled because the hotkey could still trigger even if disabled
-            pub.sendMessage('view.button.shutter')
+            tpub.sendMessage('projector.view.button.shutter')
 
     def onPowerToggle(self, event):
-        pub.sendMessage('view.button.power')
+        tpub.sendMessage('projector.view.button.power')
 
     def onLogClosed(self, event):
         self.checkbox_showLog.SetValue(False)
         self.logFrame.Hide()
-        event.skip()
 
 
-class View(object):
+class Main_View(object):
+    """The view interface. The presenter only has a reference to an instance of this class,
+    not to the actual view implementation
+    """
     def __init__(self):
         self.app = wx.App(redirect=0)
         self.mainframe = MainFrame(None, 'Kammerspiele ProjectorControl')
         self.app.SetTopWindow(self.mainframe)
-        pub.sendMessage('view.ready')
+        tpub.sendMessage('main.view.ready')
+
+    def configure(self, getConfig):
+        pass
 
     def start(self):
-        pub.sendMessage('view.started')
+        tpub.sendMessage('main.view.started')
         self.app.MainLoop()
 
     def disableShutter(self):
@@ -303,7 +310,7 @@ class View(object):
         if 'shutter' in kwargs:
             self.mainframe.updateShutter(kwargs['shutter'])
 
-    def signalCooling(self, enable = True):
+    def signalCooling(self, enable=True):
         if enable:
             self.mainframe.blinkBackground()
         else:
@@ -316,8 +323,11 @@ class View(object):
                                          style=wx.YES_NO|wx.ICON_WARNING)
         answer = confirmDialog.ShowModal()
         if answer == wx.ID_YES:
-            pub.sendMessage("view.confirmed.poweroff")
+            tpub.sendMessage("projector.view.confirmed.poweroff")
 
+    def generalMessage(self, message, color=None):
+        #self.mainframe.
+        pass
 
 if __name__ == '__main__':
-    View().start()
+    Main_View().start()
